@@ -3,14 +3,18 @@ package server;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
+import java.lang.reflect.Field;
+
 public class ClientCommandHandler extends SimpleChannelInboundHandler<String> {
-    public static final String LS_COMMAND = "\tls                       view all files from current directory\n";
-    public static final String MKDIR_COMMAND = "\tmkdir (dirname)          create directory\n";
-    public static final String TOUCH_COMMAND = "\ttouch (filename)         create file\n";
-    public static final String CD_COMMAND = "\tcd (path)                change directory\n";
-    public static final String RM_COMMAND = "\trm (filename)            remove file\\directory nickname\n";
-    public static final String COPY_COMMAND = "\tcopy (src, target)       change nickname\n";
-    public static final String CAT_COMMAND = "\tcat (filename)           show file\n";
+    public static final Command HELP_COMMAND = new Command( "help", "available commands");
+    public static final Command LS_COMMAND = new Command("ls", "view all files from current directory");
+    public static final Command MKDIR_COMMAND = new Command("mkdir", "create directory");
+    public static final Command TOUCH_COMMAND = new Command("touch", "create file");
+    public static final Command CD_COMMAND = new Command("cd", "change directory");
+    public static final Command RM_COMMAND = new Command("rm", "remove file or directory");
+    public static final Command COPY_COMMAND = new Command("copy", "copy file");
+    public static final Command CAT_COMMAND = new Command("cat","show file");
+    public static final Command EXIT_COMMAND = new Command("exit","just exit");
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -19,7 +23,10 @@ public class ClientCommandHandler extends SimpleChannelInboundHandler<String> {
 
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-        ctx.writeAndFlush("Auth complete!\n");
+        ctx.write("Auth complete!\n");
+        ctx.write("type 'help' for available commands\n");
+        ctx.write(":> ");
+        ctx.flush();
     }
 
     @Override
@@ -29,13 +36,32 @@ public class ClientCommandHandler extends SimpleChannelInboundHandler<String> {
         String command = msg
                 .replace("\r", "")
                 .replace("\n", "");
-        if (command.equals("ls")) {
-            //TODO smt
-        } else if (command.equals("exit")) {
+        if (command.equals(HELP_COMMAND.get())) {
+            sendCommands(ctx);
+        } else if (command.equals(EXIT_COMMAND.get())) {
             System.out.println("Chanel closed");
             ctx.channel().closeFuture();
             ctx.channel().close();
         }
+        ctx.writeAndFlush(":> ");
+    }
+
+    private void sendCommands(ChannelHandlerContext ctx) throws IllegalAccessException {
+        Field[] declaredFields = ClientCommandHandler.class.getDeclaredFields();
+        StringBuilder sb = new StringBuilder();
+        for (Field field : declaredFields) {
+            if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+                String cmdName = ((Command)(field.get(null))).get();
+                String cmdDsc = ((Command)(field.get(null))).getDescription();
+                sb.append("\t"
+                        + cmdName
+                        + " ".repeat(25 - cmdName.length())
+                        + cmdDsc
+                        + "\n");
+            }
+        }
+
+        ctx.writeAndFlush(sb.toString());
     }
 
     @Override
