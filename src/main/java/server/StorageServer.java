@@ -8,8 +8,11 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LineBasedFrameDecoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
+import io.netty.handler.stream.ChunkedWriteHandler;
+import io.netty.util.CharsetUtil;
 
 public class StorageServer {
 
@@ -31,10 +34,11 @@ public class StorageServer {
                         @Override
                         public void initChannel(SocketChannel ch) throws Exception {
                             ch.pipeline().addLast(
-                                    new StringDecoder(),
+                                    new FileServerHandler());
+/*                                    new StringDecoder(),
                                     new StringEncoder(),
-                                    //new ClientCommandHandler(),
-                                    new AuthHandler());
+                                    new ClientCommandHandler());*/
+                                    //new AuthHandler());
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)          // (5)

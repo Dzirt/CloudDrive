@@ -2,6 +2,8 @@ package server;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.LineBasedFrameDecoder;
+import io.netty.handler.stream.ChunkedWriteHandler;
 
 import java.lang.reflect.Field;
 
@@ -14,6 +16,11 @@ public class ClientCommandHandler extends SimpleChannelInboundHandler<String> {
     public static final Command RM_COMMAND = new Command("rm", "remove file or directory");
     public static final Command COPY_COMMAND = new Command("copy", "copy file");
     public static final Command CAT_COMMAND = new Command("cat","show file");
+
+    public static final Command UPLOAD_COMMAND = new Command( "upload", "upload file");
+    public static final Command DOWNLOAD_COMMAND = new Command( "download", "upload file");
+
+
     public static final Command EXIT_COMMAND = new Command("exit","just exit");
 
     @Override
@@ -38,6 +45,12 @@ public class ClientCommandHandler extends SimpleChannelInboundHandler<String> {
                 .replace("\n", "");
         if (command.equals(HELP_COMMAND.get())) {
             sendCommands(ctx);
+        } else if (command.equals(UPLOAD_COMMAND.get())){
+            ctx.pipeline().addLast(new LineBasedFrameDecoder(8192));
+            ctx.pipeline().addLast(new ChunkedWriteHandler());
+            ctx.pipeline().addLast(new FileServerHandler());
+        } else if (command.equals(DOWNLOAD_COMMAND.get())){
+
         } else if (command.equals(EXIT_COMMAND.get())) {
             System.out.println("Chanel closed");
             ctx.channel().closeFuture();
